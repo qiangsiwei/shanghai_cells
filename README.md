@@ -39,4 +39,4 @@ python analysis_clustering.py plot_statistic_description_length
 python analysis_clustering.py statistic_description_byevent   
 python analysis_clustering.py plot_event_mutual_information   
 python -W ignore analysis_clustering.py spatio_temporal_semantic_clustering   
-
+python analysis_clustering.py plot_clustering_result_analysis

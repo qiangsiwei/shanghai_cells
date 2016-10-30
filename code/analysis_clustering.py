@@ -274,6 +274,43 @@ def spatio_temporal_semantic_clustering(filename, mode='STREAMING', alg=None):
 			raise Exception('mode not supported.')
 
 
+def clustering_result_analysis(filename):
+	events = defaultdict(list); event = []
+
+	get_taskids = lambda l:map(lambda x:x[0],l)
+	get_cords = lambda l:None # TBD
+	get_times = lambda l:None # TBD
+
+	for line in fileinput.input(filename):
+		if fileinput.lineno() % 10**4 == 0: sys.stdout.write(str(fileinput.lineno())+'\r'); sys.stdout.flush()
+		if line.strip():
+			EVENTNAME, TASKID, COORDX, COORDY, INFOSOURCENAME, DISCOVERTIME, SOLVINGTIME, \
+			ADDRESS, STREETNAME, DESCRIPTION, ENDRESULT, URGENTDEGREE, USEREVALUATE = line.strip().decode('utf-8').split(u'\t')[:13]
+			INFOBCNAME, INFOSCNAME, EVENTID = EVENTNAME.split(u':')
+			COORDX, COORDY, DISCOVERTIME = float(COORDX), float(COORDY), int(time.strftime('%j',time.strptime(DISCOVERTIME,'%Y/%m/%d %H:%M:%S'))) + (366 if DISCOVERTIME.startswith('2016') else 0)
+			event.append((TASKID,COORDX,COORDY,DISCOVERTIME))
+		else:
+			events[INFOBCNAME].append(get_taskids(event)); event = []
+	fileinput.close()
+
+	plt.figure(figsize=(10,10))
+	subplots_adjust(left=0.15,right=0.95,top=0.95,bottom=0.05)
+	BCNAMEs, counts = zip(*sorted([(BCNAME,len(eventlist)) for BCNAME,eventlist in events.iteritems()],key=lambda x:x[1]))
+	plt.barh(range(len(BCNAMEs)), counts, alpha=0.4)
+	plt.yticks(range(len(BCNAMEs)), BCNAMEs)
+	plt.title(u'各类事件次数统计')
+	plt.xlabel(u'频次')
+	ax = plt.gca()
+	ax.xaxis.get_major_formatter().set_powerlimits((0,1))
+	plt.savefig('./statistic_clustering/event_category.png')
+
+	with open('./statistic_clustering/clustering_eventids.tsv','w') as outfile:
+		for BCNAME, eventlist in events.iteritems():
+			if not BCNAME: continue
+			for eid, ids in enumerate(eventlist):
+				outfile.write(u'{0}\t{1}\t{2}\n'.format(BCNAME,eid,u','.join(ids)).encode('utf-8'))
+
+
 if __name__ == '__main__':
 	if sys.argv[1] == 'plot_statistic_description_length':
 		statistic_description_length('../data/extracted.tsv')
@@ -283,4 +320,6 @@ if __name__ == '__main__':
 		event_mutual_information('../data/extracted.tsv')
 	if sys.argv[1] == 'spatio_temporal_semantic_clustering':
 		spatio_temporal_semantic_clustering('../data/extracted.tsv')
+	if sys.argv[1] == 'plot_clustering_result_analysis':
+		clustering_result_analysis('./statistic_clustering/results.tsv')
 
